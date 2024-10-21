@@ -102,11 +102,13 @@ async def message(request: ValidateRequest):
         user_histories = user_histories[-3:]
         return JSONResponse(status_code=200, content={"response": response})
     except Exception as e:
+        print(e)
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post('/chat')
 async def chat(user_id: str = Form(...), image: UploadFile = File(...), message: str = Form(...)):
     try:
+        global user_histories
         image_content = await image.read()
         with Image.open(io.BytesIO(image_content)) as img:
             img = img.convert("RGB")
@@ -124,6 +126,7 @@ async def chat(user_id: str = Form(...), image: UploadFile = File(...), message:
         user_histories = user_histories[-3:]
         return JSONResponse(status_code=200, content={"response": response})
     except Exception as e:
+        print(e)
         raise HTTPException(status_code=500, detail=str(e))
 
 if __name__ == "__main__":
