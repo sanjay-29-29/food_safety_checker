@@ -1,5 +1,6 @@
 from fastapi import FastAPI, HTTPException, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 import transformers
 import torch
@@ -48,7 +49,7 @@ listener = ngrok.forward("127.0.0.1:8000", authtoken_from_env=True, domain="ster
 
 user_histories = {}
 
-def query_model(system_message, user_message, history, temperature=0.7, max_length=1024):
+def query_model(system_message, user_message, history, temperature=0.7, max_length=2500):
     user_message = "Question: " + user_message + " Answer:"
     messages = history + [{"role": "user", "content": user_message}]
     
@@ -91,7 +92,7 @@ async def message(request: ValidateRequest):
 
 @app.post('/chat')
 async def chat(user_id: str = Form(...), image: UploadFile = File(...), message: str = Form(...)):
-    try :
+    try:
         image_content = await image.read()
         with Image.open(io.BytesIO(image_content)) as img:
             img = img.convert("RGB")
@@ -106,8 +107,7 @@ async def chat(user_id: str = Form(...), image: UploadFile = File(...), message:
         history = user_histories.get(user_id, [{"role": "system", "content": system_message}])
         response, updated_history = query_model(system_message, query, history)
         user_histories[user_id] = updated_history[-3:]
-        return {"response": response}
-    
+        return JSONResponse(status_code=200, content={"response": response})
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
