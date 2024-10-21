@@ -44,7 +44,7 @@ export default function ChatBot(){
         formData.append('user_id', userId + "The user info is " + JSON.stringify(userInfo));
         formData.append('message', query);
         setQuery(null);
-        
+
         const response = await axios.post('https://sterling-python-willingly.ngrok-free.app/chat', formData);
         if (response.status === 200) {
           setMessages([...messages, { user: "bot", message: response.data.response }]);
@@ -56,7 +56,7 @@ export default function ChatBot(){
         console.log(userInfo);
         console.log(query);
         const response = await axios.post('https://sterling-python-willingly.ngrok-free.app/message', {
-          user_id: userId,
+          user_id: "test@123",
           message: query + "The user info is " + JSON.stringify(userInfo),
         });
         if (response.status === 200) {
@@ -65,7 +65,6 @@ export default function ChatBot(){
         }
       }
       setLoading(false);
-      console.log(response);
     } catch(e){
       setLoading(false);
       setMessages([...messages, {user: "bot", message: "Something went wrong. Please try again."}]);
@@ -78,7 +77,7 @@ export default function ChatBot(){
       <div className="flex bg-slate-300 h-screen w-screen">
         <Navbar/>
         <div className="flex flex-col p-5 justify-between w-full h-full">
-          <div className="flex flex-col overflow-y-auto">
+          <div className="flex flex-col overflow-y-auto mb-3">
             {messages.map((val, index) => (
             <>
               {val.user == "user" && <UserInputBubble key={index} user={val}/>}
