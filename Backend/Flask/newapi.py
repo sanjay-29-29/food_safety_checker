@@ -49,7 +49,7 @@ listener = ngrok.forward("127.0.0.1:8000", authtoken_from_env=True, domain="ster
 
 user_histories = {}
 
-def query_model(system_message, user_message, history, temperature=0.7, max_length=2500):
+def query_model(system_message, user_message, history, temperature=0.7, max_length=1024):
     user_message = "Question: " + user_message + " Answer:"
     messages = history + [{"role": "user", "content": user_message}]
 
@@ -69,6 +69,7 @@ def query_model(system_message, user_message, history, temperature=0.7, max_leng
         do_sample=True,
         top_p=0.9,
         temperature=temperature,
+        eos_token_id=terminators,
         max_new_tokens=max_length,
         return_full_text=False,
         pad_token_id=pipeline.model.config.eos_token_id
