@@ -33,30 +33,37 @@ export default function ChatBot(){
       setMessages([...messages, {user: "user", message: query, image: imageUrl}]);
       setImage(null)
       setImageUrl(null)
-      if(image){
+      if (image) {
+        let str = "";
+        for (let i = 0; i < userInfo.medicalCondition.length; i++) {
+          str += userInfo.medicalCondition[i] + ",";
+        }
+      
         const formData = new FormData();
         formData.append('image', image);
-        formData.append('user_id', userId);
+        formData.append('user_id', userId + "The user info is " + JSON.stringify(userInfo));
         formData.append('message', query);
-        const response = await axios.post('https://sterling-python-willingly.ngrok-free.app/chat',formData);
-        if(response.status == 200){
-          setMessages([...messages, {user: "bot", message: response.data.response}]);
-          return
+        setQuery(null);
+        
+        const response = await axios.post('https://sterling-python-willingly.ngrok-free.app/chat', formData);
+        if (response.status === 200) {
+          setMessages([...messages, { user: "bot", message: response.data.response }]);
+          return;
         }
       }
-      if(messages){
+      
+      if (messages) {
         console.log(userInfo);
         console.log(query);
-        const response = await axios.post('https://sterling-python-willingly.ngrok-free.app/message',{
-          user_id : userId,
-          message : query
+        const response = await axios.post('https://sterling-python-willingly.ngrok-free.app/message', {
+          user_id: userId,
+          message: query + "The user info is " + JSON.stringify(userInfo),
         });
-        if(response.status == 200){
-          setMessages([...messages, {user: "bot", message: response.data.response}]);
-          return
+        if (response.status === 200) {
+          setMessages([...messages, { user: "bot", message: response.data.response }]);
+          return;
         }
       }
-      setQuery(null);
       setLoading(false);
       console.log(response);
     } catch(e){
