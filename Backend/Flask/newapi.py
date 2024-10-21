@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, UploadFile, File
+from fastapi import FastAPI, HTTPException, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import transformers
@@ -48,7 +48,7 @@ listener = ngrok.forward("127.0.0.1:8000", authtoken_from_env=True, domain="ster
 
 user_histories = {}
 
-def query_model(system_message, user_message, history, temperature=0.7, max_length=2500):
+def query_model(system_message, user_message, history, temperature=0.7, max_length=1024):
     user_message = "Question: " + user_message + " Answer:"
     messages = history + [{"role": "user", "content": user_message}]
     
@@ -90,8 +90,8 @@ async def message(request: ValidateRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post('/chat')
-async def chat(image: UploadFile = File(...)):
-    try:
+async def chat(user_id: str = Form(...), image: UploadFile = File(...)):
+    try {
         image_content = await image.read()
         with Image.open(io.BytesIO(image_content)) as img:
             img = img.convert("RGB")
@@ -99,10 +99,14 @@ async def chat(image: UploadFile = File(...)):
         
         extracted_text = ocr_utils.extract_text_from_image("image.jpg")
         query = f"Extracted ingredients: {extracted_text}. Provide detailed information about these ingredients. provide the side effects of consuming this product for a long term and short term. provide within 500 words."
-        history = [{"role": "system", "content": system_message}]
-        response, _ = query_model(system_message, query, history)
+        history = user_histories.get(user_id, [{"role": "system", "content": system_message}])
+        response, updated_history = query_model(system_message, query, history)
+        user_histories[user_id] = updated_history[-3:]
         return {"response": response}
-    except Exception as e:
+    } catch (Exception e) {
         raise HTTPException(status_code=500, detail=str(e))
+    }
+}
+
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)
