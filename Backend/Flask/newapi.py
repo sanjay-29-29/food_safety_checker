@@ -30,9 +30,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Model setup
 model = "/kaggle/input/llama-3/transformers/8b-chat-hf/1"
+
 tokenizer = AutoTokenizer.from_pretrained(model)
+
 pipeline = transformers.pipeline(
     "text-generation",
     model=model,
@@ -41,6 +42,7 @@ pipeline = transformers.pipeline(
 )
 
 ngrok_auth_token = "2lC10VNMNNHozy9qU2wBzosN3at_3QYjZW2FJ2sr1po7qXqqs"
+
 if ngrok_auth_token is None:
     raise ValueError("NGROK_AUTH_TOKEN is not set")
 ngrok.set_auth_token(ngrok_auth_token)
@@ -49,23 +51,33 @@ listener = ngrok.forward("127.0.0.1:8000", authtoken_from_env=True, domain="ster
 
 user_histories = {}
 
-def query_model(system_message, user_message, history, temperature=0.7, max_length=2500):
+def query_model(system_message, user_message, history, temperature=0.7, max_length=1024):
+    start_time = time()
     user_message = "Question: " + user_message + " Answer:"
-    messages = history + [{"role": "user", "content": user_message}]
-    
-    # Create prompt from history
-    prompt = "\n".join([f"{msg['role']}: {msg['content']}" for msg in messages])
-    
+    messages = history + [
+        {"role": "user", "content": user_message},
+    ]
+    prompt = pipeline.tokenizer.apply_chat_template(
+        messages, 
+        tokenize=False, 
+        add_generation_prompt=True
+    )
+    terminators = [
+        pipeline.tokenizer.eos_token_id,
+        pipeline.tokenizer.convert_tokens_to_ids("<|eot_id|>")
+    ]
     sequences = pipeline(
         prompt,
         do_sample=True,
         top_p=0.9,
         temperature=temperature,
+        eos_token_id=terminators,
         max_new_tokens=max_length,
         return_full_text=False,
         pad_token_id=pipeline.model.config.eos_token_id
     )
     answer = sequences[0]['generated_text']
+
     return answer, messages
 
 system_message = (
@@ -81,12 +93,14 @@ system_message = (
 @app.post('/message')
 async def message(request: ValidateRequest):
     try:
+        global user_histories
         user_id = request.user_id
         user_message = request.message
         history = user_histories.get(user_id, [{"role": "system", "content": system_message}])
         response, updated_history = query_model(system_message, user_message, history)
-        user_histories[user_id] = updated_history[-3:]  
-        return {"response": response}
+        user_histories[user_id] = updated_history
+        user_histories = user_histories[-3:]
+        return JSONResponse(status_code=200, content={"response": response})
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -105,8 +119,9 @@ async def chat(user_id: str = Form(...), image: UploadFile = File(...), message:
         long term and short term. provide within 200 words"""
 
         history = user_histories.get(user_id, [{"role": "system", "content": system_message}])
-        response, updated_history = query_model(system_message, query, history)
-        user_histories[user_id] = updated_history[-3:]
+        response, updated_history = query_model(system_message, user_message, history)
+        user_histories[user_id] = updated_history
+        user_histories = user_histories[-3:]
         return JSONResponse(status_code=200, content={"response": response})
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
