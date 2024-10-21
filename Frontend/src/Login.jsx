@@ -5,7 +5,7 @@ import axios from "axios";
 
 const Login = () => {
 
-  const { Auth, setAuth, setToken } = useUser();
+  const { Auth, setAuth, setToken, setUserId } = useUser();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -24,6 +24,7 @@ const Login = () => {
       if (response.status == 200) {
         setAuth(true);
         setToken(response.data.token);
+        setUserId(response.data.userId);
         console.log(response.data)
         if (response.firsLogin == true) {
           navigate('/update');

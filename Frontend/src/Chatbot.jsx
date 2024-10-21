@@ -10,7 +10,7 @@ export default function ChatBot(){
 
   const imageUploadRef = useRef(null);
 
-  const {userInfo} = useUser();
+  const {userInfo, userId} = useUser();
 
   const [loading, setLoading] = useState(false);
   const [image, setImage] = useState(null);
@@ -36,6 +36,8 @@ export default function ChatBot(){
       if(image){
         const formData = new FormData();
         formData.append('image', image);
+        formData.append('user_id', userId);
+        formData.append('message', query);
         const response = await axios.post('https://sterling-python-willingly.ngrok-free.app/chat',formData);
         if(response.status == 200){
           setMessages([...messages, {user: "bot", message: response.data.response}]);
@@ -43,10 +45,10 @@ export default function ChatBot(){
         }
       }
       if(messages){
-        console.log(userInfo.user_id);
+        console.log(userInfo);
         console.log(query);
         const response = await axios.post('https://sterling-python-willingly.ngrok-free.app/message',{
-          user_id : "test@123",
+          user_id : userId,
           message : query
         });
         if(response.status == 200){

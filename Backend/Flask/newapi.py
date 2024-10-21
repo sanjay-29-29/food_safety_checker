@@ -90,23 +90,26 @@ async def message(request: ValidateRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post('/chat')
-async def chat(user_id: str = Form(...), image: UploadFile = File(...)):
-    try {
+async def chat(user_id: str = Form(...), image: UploadFile = File(...), message: str = Form(...)):
+    try :
         image_content = await image.read()
         with Image.open(io.BytesIO(image_content)) as img:
             img = img.convert("RGB")
             img.save("image.jpg")
         
         extracted_text = ocr_utils.extract_text_from_image("image.jpg")
-        query = f"Extracted ingredients: {extracted_text}. Provide detailed information about these ingredients. provide the side effects of consuming this product for a long term and short term. provide within 500 words."
+        
+        query = f"""Extracted ingredients: {extracted_text}. Provide detailed information about these ingredients and also
+        provide whether user with {message} can consume it or not. provide the side effects of consuming this product for a 
+        long term and short term. provide within 200 words"""
+
         history = user_histories.get(user_id, [{"role": "system", "content": system_message}])
         response, updated_history = query_model(system_message, query, history)
         user_histories[user_id] = updated_history[-3:]
         return {"response": response}
-    } catch (Exception e) {
+    
+    except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-    }
-}
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)
